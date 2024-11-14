@@ -1,0 +1,195 @@
+---
+title: "Solução Lista 05"
+author: |
+        | Nome: Julia Xavier
+        | E-mail: julia.xavier@aluno.ufabc.edu.br
+        | Nome: Leonardo Bernardes Lério da Silva
+        | E-mail: leonardo.lerio@aluno.ufabc.edu.br
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,
+                      fig.align='center',
+                      cache=TRUE,
+                      out.width = "60%",
+                      out.heigth = "60%",
+                      warning=FALSE,
+                      message=FALSE)
+options(width =70)
+
+library(reticulate)
+use_python("C:/Users/leonler/AppData/Local/Programs/Python/Python39/python.exe")
+```
+
+## Exercício 01
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+```{python}
+np.random.seed(1234)
+```
+
+```{python}
+x1 = np.random.uniform(-4, 4, size=100)
+x1
+```
+
+```{python}
+y = x1**3 - 2*x1**2 + 5*x1 + 13 + np.random.normal(0, 5.0, size=100)
+y
+```
+
+(a) Implemente uma função que retorna a matriz kernel K utilizando o kernel polinomial de grau 3 com constante c = 1. Ou seja, calcule a matriz K (pertence) R m×m tal que Kij = (xi1 * xj1 + 1)^3
+
+```{python}
+def calcula_kernel_matriz(x, degree):
+
+    matriz = len(x)
+    kernel = np.zeros((matriz, matriz))
+    for i in range(matriz):
+        for j in range(matriz):
+            kernel[i, j] = (x[i] * x[j] + 1)**degree
+
+    return kernel
+```
+
+(b) Calcule os coeficientes (alpha) de acordo com o método da regressão Ridge com Kernel com penalização (lambda) = 0.001. Lembre-se que são dados por (alpha) = ((K + (lambda)I)^-1)y.
+
+```{python}
+def calcula_alpha(kernel, y, lambda_value):
+    matriz = kernel.shape[0]
+    alpha = np.linalg.inv(kernel + lambda_value*np.identity(matriz)).dot(y)
+    return alpha
+```
+
+```{python}
+kernel = calcula_kernel_matriz(x1, 3)
+kernel
+```
+
+```{python}
+lambda_value = 0.001
+alpha = calcula_alpha(kernel, y, lambda_value)
+alpha
+```
+
+(c) Faça o gráfico em duas dimensões da função resultante usando x = x1 e y = “valor predito”. Lembre-se que o Kernel Ridge regression faz predições da seguinte forma: f(x) = (somatoria) m, i=1 (alpha)i k (xi,x) + b
+
+```{python}
+x = x1
+```
+
+```{python}
+preditor = np.dot(kernel, alpha)
+plt.scatter(x, preditor)
+plt.show()
+```
+
+## Exercício 02
+```{python}
+np.random.seed(1234)
+x1 = np.random.uniform(-10, 10, size=100)
+y = np.where(x1 == 0, 1, np.sin(x1) / x1) + np.random.normal(0, 0.05, size=100)
+```
+
+a) Implemente uma função que retorna a matriz kernel K utilizando o kernel polinomial de grau 3 com constante c = 1. Ou seja, calcule a matriz K (pertence) R m×m tal que Kij = (xi1 * xj1 + 1)^3
+
+```{python}
+def calcula_kernel_matriz(x, sigma):
+    matriz = len(x)
+    kernel = np.zeros((matriz, matriz))
+    for i in range(matriz):
+        for j in range(matriz):
+            kernel[i, j] = np.exp(-((x[i] - x[j])**2) / (2 * sigma**2))
+    return kernel
+```
+
+(b) Calcule os coeficientes (alpha) de acordo com o método da regressão Ridge com Kernel com penalização (lambda) = 0.001. Lembre-se que são dados por (alpha) = ((K + (lambda)I)^-1)y. Para simplificar, faça o intercepto-y ser b = 0.
+
+```{python}
+def calcula_alpha(kernel, y, valor_lamb):
+    matriz = kernel.shape[0]
+    alpha = np.linalg.inv(kernel + valor_lamb*np.identity(matriz)).dot(y)
+    return alpha
+```
+
+```{python}
+sigma = 1
+kernel = calcula_kernel_matriz(x1, sigma)
+kernel
+```
+
+```{python}
+valor_lamb = 0.001
+alpha = calcula_alpha(kernel, y, valor_lamb)
+alpha
+```
+
+```{python}
+x = x1
+preditor = np.dot(kernel, alpha)
+plt.clf()
+plt.scatter(x, preditor)
+plt.legend()
+plt.show()
+```
+
+
+## Exercício 03
+(a) Se a fronteira de decisão de Bayes é linear, qual dos algoritmos LDA ou QDA você espera ter melhor
+performance segundo o conjunto de treinamento? E sobre o conjunto de testes? Justifique sua resposta.
+
+R: O algoritmo de Análise Discriminante Linear (LDA) é mais adequado do que o algoritmo de Análise Discriminante Quadrática (QDA) em termos de desempenho, tanto no conjunto de treinamento quanto no conjunto de testes. Pois o LDA assume que as classes têm a mesma matriz de covariância, o que reduz a complexidade do modelo em comparação com o QDA, que permite que cada classe tenha sua própria matriz de covariância. Com uma fronteira de decisão linear, o LDA é mais provável de se ajustar bem aos dados de treinamento e testes, pois é menos suscetível a overfitting.
+
+(b) Se a fronteira de decisão de Bayes é não-linear, qual dos algoritmos LDA ou QDA você espera ter
+melhor performance segundo o conjunto de treinamento? E sobre o conjunto de testes? Justifique sua
+resposta.
+
+R: O algoritmo de Análise Discriminante Quadrática (QDA) tem maior probabilidade de ter melhor desempenho do que o algoritmo de Análise Discriminante Linear (LDA), tanto no conjunto de treinamento quanto no conjunto de testes. Pois o QDA permite que cada classe tenha sua própria matriz de covariância, o que lhe confere mais flexibilidade para aprender relações não-lineares nos dados.
+
+## Exercício 04
+```{python}
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+
+url = 'https://raw.githubusercontent.com/hargurjeet/MachineLearning/Ionosphere/ionosphere_data.csv'
+df = pd.read_csv(url)
+
+columns_to_remove = ['column_a', 'column_b']
+df = df.drop(columns=columns_to_remove)
+
+df.head()
+```
+
+```{python}
+X = df.drop(columns=['column_ai'])
+y = df['column_ai']
+
+X
+y
+```
+
+```{python}
+lda = LinearDiscriminantAnalysis()
+qda = QuadraticDiscriminantAnalysis()
+nb = GaussianNB()
+
+k_fold = 10
+lda_scores = cross_val_score(lda, X, y, cv=k_fold)
+qda_scores = cross_val_score(qda, X, y, cv=k_fold)
+nb_scores = cross_val_score(nb, X, y, cv=k_fold)
+```
+
+```{python}
+print("Média Acuracia LDA:", np.mean(lda_scores))
+print("Média Acuracia QDA:", np.mean(qda_scores))
+print("Média Acuracia Naive Bayes:", np.mean(nb_scores))
+```
